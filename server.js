@@ -12,6 +12,7 @@ console.log(printer.printerTypes.EPSON);
 printer.init({
     type: printer.printerTypes.EPSON,
     interface: "printer:Epson_TM88"
+    // interface: "printer:EpsonTM88"
 });
 printer.isPrinterConnected(function (response) {
     console.log("Printer connected:", response);
@@ -24,9 +25,27 @@ app.get("/", (req, res) => {
     res.render("index");
 });
 
-function ditherImage(inputName) {
+function printImage(name) {
+    console.log("Print Image File: " + name);
+    printer.printImage('uploads/' + name, function (done) {
+        printer.cut();
+        printer.execute(function (err) {
+            if (err) {
+                console.error("Print failed", err);
+            } else {
+                console.log("Print done");
+            }
+        });
+    });
+}
+
+
+function ditherImage(inputName, outputName) {
     fs.createReadStream("./uploads/" + inputName).pipe(new PNG()).on('parsed', function () {
-        floydSteinberg(this).pack().pipe(fs.createWriteStream("./uploads/dither" + outputName));
+        floydSteinberg(this).pack().pipe(fs.createWriteStream("./uploads/dither" + outputName)).on('close', function () {
+            console.log('file done');
+            printImage("dither" + outputName);
+        });
     });
 }
 
@@ -42,23 +61,13 @@ function printtheimage(name) {
     console.log("OutputName: " + outputName);
 
     sharp("./uploads/" + inputName)
-        .resize(400)
+        .resize(500)
         .normalise()
         .greyscale()
         .png()
         // .toFile("./uploads/resized" + filetoprint.replace('.jpeg', '.png')).then(function () {
         .toFile("./uploads/" + outputName).then(function () {
-            ditherImage(outputName);
-            printer.printImage('uploads/' + outputName, function (done) {
-                printer.cut();
-                printer.execute(function (err) {
-                    if (err) {
-                        console.error("Print failed", err);
-                    } else {
-                        console.log("Print done");
-                    }
-                });
-            });
+            ditherImage(outputName, outputName);
         });
 }
 
