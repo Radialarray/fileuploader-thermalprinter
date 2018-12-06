@@ -1,17 +1,6 @@
-# Node.js simple file upload
-
-### Dependencies
-- express
-- ejs
-- fs
-- multer
+# Node File Uploader with Image Conversion
 
 
-### Run
-```
-> git clone https://github.com/Majidkn/nodejs-simple-file-upload.git
-> cd nodejs-simple-file-upload
-> npm install
-> npm start
-```
-The application will be served on `:3000`
+### What?
+File upload server in browser with image conversion and rasterization and immediate printing on connected thermal printer.
+The application will be served on `:5620`
