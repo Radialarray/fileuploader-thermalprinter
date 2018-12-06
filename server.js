@@ -67,7 +67,7 @@ var fileOriginalName;
 var storage = multer.diskStorage({
     destination: function (req, file, callback) {
         var dir =
-            "/Users/svenloechner/Desktop/HfG/Semester_6/Critical_Design/CriticalPlugins/thermaluploader/uploads";
+            "./uploads";
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir);
         }
@@ -92,4 +92,6 @@ app.post("/upload", function (req, res, next) {
     });
 });
 
-app.listen(5620);
+app.listen(5620, function () {
+    console.log('printer upload app listening at port 5620');
+});
