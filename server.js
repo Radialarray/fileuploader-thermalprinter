@@ -53,11 +53,11 @@ function printtheimage(name) {
     var inputName = String(name);
     console.log("InputName: " + inputName);
     if (inputName.match(/(jpeg|jpg)/g) != (0 || null)) {
-        outputName = inputName.replace(inputName.match(/(jpeg|jpg)/g)[0], 'png');
+        outputName = inputName.replace(inputName.match(/(jpeg|jpg|JPG|JPEG)/g)[0], 'png');
     } else {
         outputName = inputName;
     }
-    outputName = outputName.replace(outputName.match(/(.jpeg|.jpg|.png)/g)[0], '-resized' + outputName.match(/(.jpeg|.jpg|.png)/g)[0])
+    outputName = outputName.replace(outputName.match(/(.jpeg|.jpg|.JPG|.JPEG|.png|.PNG)/g)[0], '-resized.png')
     console.log("OutputName: " + outputName);
 
     sharp("./uploads/" + inputName)
@@ -66,9 +66,14 @@ function printtheimage(name) {
         .greyscale()
         .png()
         // .toFile("./uploads/resized" + filetoprint.replace('.jpeg', '.png')).then(function () {
-        .toFile("./uploads/" + outputName).then(function () {
+        // .toFile("./uploads/" + outputName).then(function () {
+        //     console.log("sharp end");
+        //     ditherImage(outputName, outputName);
+        // });
+        .toFile("./uploads/" + outputName, function () {
+            console.log("sharp end");
             ditherImage(outputName, outputName);
-        });
+        })
 }
 
 var fileOriginalName;
@@ -90,16 +95,28 @@ var storage = multer.diskStorage({
 var upload = multer({
     storage: storage
 }).array("files", 12);
-app.post("/upload", function (req, res, next) {
-    upload(req, res, function (err) {
-        if (err) {
-            return res.end("Something went wrong:(");
-        }
-        console.log(fileOriginalName);
-        printtheimage(fileOriginalName);
-        res.end("Upload completed.");
+// app.post("/upload", function (req, res, next) {
+//     upload(req, res, function (err) {
+//         if (err) {
+//             return res.end("Something went wrong:(");
+//         }
+//         console.log(fileOriginalName);
+//         printtheimage(fileOriginalName);
+//         res.end("Upload completed.");
+//                     next();
+
+//     });
+// });
+
+app.post("/upload", upload, function (req, res) {
+    req.files.forEach(function (element) {
+        console.log(element.filename);
+        printtheimage(element.filename);
     });
+    //   console.log('file: ', req.files);
+    res.end("Upload and printing completed.");
 });
+
 
 app.listen(5620, function () {
     console.log('printer upload app listening at port 5620');
