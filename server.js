@@ -27,16 +27,18 @@ app.get("/", (req, res) => {
 
 function printImage(name) {
     console.log("Print Image File: " + name);
-    printer.printImage('uploads/' + name, function (done) {
-        printer.cut();
-        printer.execute(function (err) {
-            if (err) {
-                console.error("Print failed", err);
-            } else {
-                console.log("Print done");
-            }
-        });
-    });
+    // printer.printImage('uploads/' + name, function (done) {
+    //     printer.cut();
+    //     printer.execute(function (err) {
+    //         if (err) {
+    //             console.error("Print failed", err);
+    //         } else {
+    //             console.log("Print done");
+    //             console.log("…………………………………………………………………………………………");
+    //         }
+    //     });
+    // });
+    console.log("…………………………………………………………………………………………");
 }
 
 
@@ -44,13 +46,13 @@ function ditherImage(inputName, outputName) {
     fs.createReadStream("./uploads/" + inputName).pipe(new PNG()).on('parsed', function () {
         floydSteinberg(this).pack().pipe(fs.createWriteStream("./uploads/dither" + outputName)).on('close', function () {
             console.log('file done');
-            printImage("dither" + outputName);
+            // printImage("dither" + outputName);
         });
     });
 }
 
-function printtheimage(name) {
-    var inputName = String(name);
+function changename(input, output) {
+    inputName = String(input);
     console.log("InputName: " + inputName);
     if (inputName.match(/(jpeg|jpg)/g) != (0 || null)) {
         outputName = inputName.replace(inputName.match(/(jpeg|jpg|JPG|JPEG)/g)[0], 'png');
@@ -60,20 +62,44 @@ function printtheimage(name) {
     outputName = outputName.replace(outputName.match(/(.jpeg|.jpg|.JPG|.JPEG|.png|.PNG)/g)[0], '-resized.png')
     console.log("OutputName: " + outputName);
 
-    sharp("./uploads/" + inputName)
-        .resize(500)
-        .normalise()
-        .greyscale()
-        .png()
-        // .toFile("./uploads/resized" + filetoprint.replace('.jpeg', '.png')).then(function () {
-        // .toFile("./uploads/" + outputName).then(function () {
-        //     console.log("sharp end");
-        //     ditherImage(outputName, outputName);
-        // });
-        .toFile("./uploads/" + outputName, function () {
-            console.log("sharp end");
-            ditherImage(outputName, outputName);
-        })
+    return new Promise((resolve, reject) => {
+        console.log("input: " + inputName + " output: " + outputName);
+        resolve(inputName, outputName)
+    })
+
+}
+
+function printtheimage(name) {
+    var inputName = name;
+    var outputName;
+    changename(inputName, outputName).then(function (inputName, outputName) {
+        console.log(inputName);
+        console.log(outputName);
+        sharp("./uploads/" + inputName)
+            .resize(500)
+            .normalise()
+            .greyscale()
+            .png()
+            // .toFile("./uploads/resized" + filetoprint.replace('.jpeg', '.png')).then(function () {
+            // .toFile("./uploads/" + outputName).then(function () {
+            //     console.log("sharp end");
+            //     ditherImage(outputName, outputName);
+            // });
+            .toFile("./uploads/" + outputName)
+              return new Promise((resolve, reject) => {
+                  console.log("input: " + inputName + " output: " + outputName);
+                  resolve(inputName, outputName)
+              })
+    })
+    .then(function (outputName) {
+        console.log(outputName);
+        console.log("sharp end");
+        ditherImage(outputName, outputName);
+    })
+    // .then(printImage("dither" + outputName))
+    .catch(err => { return console.log(err);
+    });
+
 }
 
 var fileOriginalName;
