@@ -1,36 +1,116 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Node.js Simple File Upload</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css">
-    <style>
-        #uploadForm{
-            padding-top: 20px;
-            display: flex;
-            justify-content: space-between;
-        }
-        input.btn{
-            flex: 0.8;
-        }
-        button.btn{
-            flex: 0.15;
-        }
-    </style>
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/uikit.css">
+    <script src="js/uikit.min.js"></script>
+    <script src="js/uikit-icons.min.js"></script>
+
 </head>
+
 <body>
-    <div class="container">
-        <form action="/upload" method="post" enctype="multipart/form-data">
-            <input type="file" name="files"
-            class="btn btn-primary" id="file"
-            multiple>
-            <button class="btn btn-primary" type="submit" style="border-radius: 4px;">
-                Upload and Print
-            </button>
-        </form>
-    </div>
-    <script type="text/javascript">
-        document.getElementById("file").value = "";
-    </script>
+    <div class="uk-container uk-height-viewport uk-width-1-1 uk-flex uk-height-medium uk-background-muted uk-margin uk-text-center">
+        <div class="uk-margin-auto uk-margin-auto-vertical uk-width-auto@m  uk-card uk-card-default uk-card-body">
+            <div class="uk-margin">
+                <div>
+                    <legend class="uk-legend uk-text-left">Upload your files</legend>
+                    <div class="js-upload uk-placeholder uk-text-center">
+                        <span uk-icon="icon: cloud-upload"></span>
+                        <span class="uk-text-middle">Attach images (PNG & JPG supported) by dropping them here or</span>
+                        <div uk-form-custom>
+                            <input type="file" multiple>
+                            <span class="uk-link">selecting one</span>
+                        </div>
+                    </div>
+                    <progress id="js-progressbar" class="uk-progress" value="0" max="100" hidden></progress>
+                </div>
+            </div>
+
+
+            <div class="uk-container-expand uk-margin-large-top uk-text-left">
+                <form action="/form" method="post">
+                    <legend class="uk-legend ">Write your text message</legend>
+
+                    <div class="uk-margin">
+                        <textarea class="uk-textarea" rows="5" placeholder="Textarea" name="textarea"></textarea>
+                    </div>
+
+                    <div class="uk-margin">
+                        <div class="uk-grid-small uk-child-width-auto uk-grid">
+                            <label><input class="uk-checkbox" type="checkbox" name="bold"> bold</label>
+                            <label><input class="uk-checkbox" type="checkbox" name="underlined"> underlined</label>
+                            <label><input class="uk-checkbox" type="checkbox" name="big"> big</label>
+                            <label><input class="uk-checkbox" type="checkbox" name="invertcolor"> white on
+                                black background</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="uk-button  uk-button-primary uk-align-left">Submit</button>
+
+                </form>
+            </div>
+        </div>
+
+
+        <script>
+            var bar = document.getElementById('js-progressbar');
+
+            UIkit.upload('.js-upload', {
+
+                url: '/upload',
+                multiple: true,
+
+                beforeSend: function () {
+                    console.log('beforeSend', arguments);
+                },
+                beforeAll: function () {
+                    console.log('beforeAll', arguments);
+                },
+                load: function () {
+                    console.log('load', arguments);
+                },
+                error: function () {
+                    console.log('error', arguments);
+                },
+                complete: function () {
+                    console.log('complete', arguments);
+                },
+
+                loadStart: function (e) {
+                    console.log('loadStart', arguments);
+
+                    bar.removeAttribute('hidden');
+                    bar.max = e.total;
+                    bar.value = e.loaded;
+                },
+
+                progress: function (e) {
+                    console.log('progress', arguments);
+
+                    bar.max = e.total;
+                    bar.value = e.loaded;
+                },
+
+                loadEnd: function (e) {
+                    console.log('loadEnd', arguments);
+
+                    bar.max = e.total;
+                    bar.value = e.loaded;
+                },
+
+                completeAll: function () {
+                    console.log('completeAll', arguments);
+                    
+                    setTimeout(function () {
+                        bar.setAttribute('hidden', 'hidden');
+                    }, 1000);
+                }
+
+            });
+        </script>
 </body>
+
 </html>

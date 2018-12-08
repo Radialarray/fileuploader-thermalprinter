@@ -1,10 +1,12 @@
 var express = require("express");
+var serveStatic = require('serve-static')
 var multer = require("multer");
 var fs = require("fs");
 var printer = require("node-thermal-printer");
 var sharp = require("sharp");
 var floydSteinberg = require('floyd-steinberg');
 var PNG = require('pngjs').PNG;
+var bodyParser = require('body-parser');
 
 
 console.log(printer.printerTypes.EPSON);
@@ -21,85 +23,133 @@ printer.isPrinterConnected(function (response) {
 var app = express();
 app.set("view engine", "ejs");
 
+app.use(express.static(__dirname + '/public'));
+
 app.get("/", (req, res) => {
     res.render("index");
 });
 
-function printImage(name) {
-    console.log("Print Image File: " + name);
-    // printer.printImage('uploads/' + name, function (done) {
-    //     printer.cut();
-    //     printer.execute(function (err) {
-    //         if (err) {
-    //             console.error("Print failed", err);
-    //         } else {
-    //             console.log("Print done");
-    //             console.log("…………………………………………………………………………………………");
-    //         }
-    //     });
-    // });
-    console.log("…………………………………………………………………………………………");
-}
+// for parsing application/json
+app.use(bodyParser.json());
 
+// for parsing application/xwww-
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
+//form-urlencoded
 
-function ditherImage(inputName, outputName) {
-    fs.createReadStream("./uploads/" + inputName).pipe(new PNG()).on('parsed', function () {
-        floydSteinberg(this).pack().pipe(fs.createWriteStream("./uploads/dither" + outputName)).on('close', function () {
-            console.log('file done');
-            // printImage("dither" + outputName);
-        });
+function changeName(param) {
+    return new Promise(function (resolve, reject) {
+        input = String(param);
+        if (input.match(/(jpeg|jpg)/g) != (0 || null)) {
+            output = input.replace(input.match(/(jpeg|jpg|JPG|JPEG)/g)[0], 'png');
+        } else {
+            output = input;
+        }
+        resized = output.replace(output.match(/(.jpeg|.jpg|.JPG|.JPEG|.png|.PNG)/g)[0], '-resized.png')
+        dithered = output.replace(output.match(/(.jpeg|.jpg|.JPG|.JPEG|.png|.PNG)/g)[0], '-dithered.png')
+        console.log('naming done')
+        var result = {
+            input: input,
+            resized: resized,
+            dithered: dithered
+        };
+        resolve(result);
     });
 }
 
-function changename(input, output) {
-    inputName = String(input);
-    console.log("InputName: " + inputName);
-    if (inputName.match(/(jpeg|jpg)/g) != (0 || null)) {
-        outputName = inputName.replace(inputName.match(/(jpeg|jpg|JPG|JPEG)/g)[0], 'png');
-    } else {
-        outputName = inputName;
-    }
-    outputName = outputName.replace(outputName.match(/(.jpeg|.jpg|.JPG|.JPEG|.png|.PNG)/g)[0], '-resized.png')
-    console.log("OutputName: " + outputName);
-
-    return new Promise((resolve, reject) => {
-        console.log("input: " + inputName + " output: " + outputName);
-        resolve(inputName, outputName)
-    })
-
-}
-
-function printtheimage(name) {
-    var inputName = name;
-    var outputName;
-    changename(inputName, outputName).then(function (inputName, outputName) {
-        console.log(inputName);
-        console.log(outputName);
-        sharp("./uploads/" + inputName)
+function convertImage(result) {
+    return new Promise(function (resolve, reject) {
+        sharp("./uploads/" + result.input)
             .resize(500)
             .normalise()
             .greyscale()
             .png()
-            // .toFile("./uploads/resized" + filetoprint.replace('.jpeg', '.png')).then(function () {
-            // .toFile("./uploads/" + outputName).then(function () {
-            //     console.log("sharp end");
-            //     ditherImage(outputName, outputName);
-            // });
-            .toFile("./uploads/" + outputName)
-              return new Promise((resolve, reject) => {
-                  console.log("input: " + inputName + " output: " + outputName);
-                  resolve(inputName, outputName)
-              })
-    })
-    .then(function (outputName) {
-        console.log(outputName);
-        console.log("sharp end");
-        ditherImage(outputName, outputName);
-    })
-    // .then(printImage("dither" + outputName))
-    .catch(err => { return console.log(err);
+            .toFile("./uploads/" + result.resized, function () {
+                console.log('converting done')
+                resolve(result);
+            })
     });
+}
 
+function ditherImage(result) {
+    return new Promise(function (resolve, reject) {
+        fs.createReadStream("./uploads/" + result.resized).pipe(new PNG()).on('parsed', function () {
+            floydSteinberg(this).pack().pipe(fs.createWriteStream("./uploads/" + result.dithered)).on('close', function () {
+                console.log('dithering done');
+                resolve(result);
+            });
+        });
+    });
+}
+
+function printImage(result) {
+    // return new Promise(function (resolve, reject) {
+    printer.printImage('uploads/' + result.dithered, function (done) {
+        printer.cut();
+        printer.execute(function (err) {
+            if (err) {
+                console.error("print failed", err);
+            } else {
+                console.log("printing done");
+                console.log("…………………………………………………………………………………………");
+            }
+        });
+    });
+    return console.log('________________________');
+}
+
+async function printImages(name) {
+    let step1 = await changeName(name);
+    let step2 = await convertImage(step1);
+    let step3 = await ditherImage(step2);
+    await printImage(step3);
+}
+
+function printText(data) {
+    console.log(data)
+    if (data.textarea.length > 0) {
+        if (data.textarea.length < 50) {
+            printer.alignCenter();
+            printer.setTextQuadArea();
+            printer.bold(true);
+        }
+        if (data.hasOwnProperty('big')) {
+            if (data.big === "on") {
+                printer.setTextQuadArea();
+                // console.log("yup, big")
+            }
+        }
+        if (data.hasOwnProperty('bold')) {
+            if (data.bold === "on") {
+                printer.bold(true);
+                // console.log("yup, bold")
+            }
+        }
+        if (data.hasOwnProperty('underlined')) {
+            if (data.underlined === "on") {
+                printer.underlineThick(true);
+                // console.log("yup, underlined")
+            }
+        }
+        if (data.hasOwnProperty('invertcolor')) {
+            if (data.invertcolor === "on") {
+                printer.invert(true);
+                // console.log("yup, inverted")
+            }
+        }
+
+        printer.println(data.textarea); // Append text with new line
+        printer.cut();
+        printer.execute(function (err) {
+            if (err) {
+                console.error("print failed", err);
+            } else {
+                console.log("printing done");
+                console.log("…………………………………………………………………………………………");
+            }
+        });
+    }
 }
 
 var fileOriginalName;
@@ -120,29 +170,21 @@ var storage = multer.diskStorage({
 });
 var upload = multer({
     storage: storage
-}).array("files", 12);
-// app.post("/upload", function (req, res, next) {
-//     upload(req, res, function (err) {
-//         if (err) {
-//             return res.end("Something went wrong:(");
-//         }
-//         console.log(fileOriginalName);
-//         printtheimage(fileOriginalName);
-//         res.end("Upload completed.");
-//                     next();
-
-//     });
-// });
+}).array('files[]', 20);
 
 app.post("/upload", upload, function (req, res) {
     req.files.forEach(function (element) {
-        console.log(element.filename);
-        printtheimage(element.filename);
+        printImages(element.filename);
     });
     //   console.log('file: ', req.files);
-    res.end("Upload and printing completed.");
+    res.render("upload");
 });
 
+app.post('/form', function (req, res) {
+    printText(req.body);
+    res.render("upload");
+
+});
 
 app.listen(5620, function () {
     console.log('printer upload app listening at port 5620');
