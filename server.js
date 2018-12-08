@@ -13,8 +13,8 @@ console.log(printer.printerTypes.EPSON);
 
 printer.init({
     type: printer.printerTypes.EPSON,
-    interface: "printer:Epson_TM88"
-    // interface: "printer:EpsonTM88"
+    // interface: "printer:Epson_TM88"
+    interface: "printer:EpsonTM88"
 });
 printer.isPrinterConnected(function (response) {
     console.log("Printer connected:", response);
